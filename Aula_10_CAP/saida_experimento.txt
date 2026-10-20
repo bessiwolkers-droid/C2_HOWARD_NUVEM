@@ -1,0 +1,35 @@
+
+Cenario 1 - rede OK: replicacao e consistencia eventual
+-------------------------------------------------------
+    A <- "preco=10" (v1)
+    B <- "preco=10" (v1)   [replicado]
+    leitura em B: "preco=10" (v1)
+    => A e B concordam (consistencia alcancada).
+
+Cenario 2 - PARTICAO: escritas e divergencia
+--------------------------------------------
+    ## rede PARTICIONADA: A e B nao se falam ##
+    A <- "preco=20" (v2)
+    B  x  NAO recebe (particao) - continua em v1
+    >>> MOMENTO DA DIVERGENCIA: A=v2  B=v1 <<<
+    A <- "preco=30" (v3)
+    B  x  NAO recebe (particao) - continua em v1
+    leitura em A: "preco=30" (v3)
+    leitura em B: "preco=10" (v1)
+    A ficou 2 versao(oes) a frente de B.
+
+Cenario 3 - politica CAP por tipo de dado sob a mesma particao
+--------------------------------------------------------------
+    leitura AP explicita: "preco=10" (v1) DESATUALIZADO (AP: prioriza Disponibilidade)
+    leitura CP explicita: 503 INDISPONIVEL (CP: prioriza Consistencia)
+    leitura de saldo (CP): 503 INDISPONIVEL (CP: prioriza Consistencia)
+    leitura de curtidas (AP): "preco=10" (v1) DESATUALIZADO (AP: prioriza Disponibilidade)
+    => saldo prioriza consistencia; curtidas priorizam disponibilidade.
+
+Cenario 4 - cura da particao: reconciliacao
+-------------------------------------------
+    ## rede CURADA: B reconcilia -> "preco=30" (v3) ##
+    leitura em B: "preco=30" (v3)
+    => passada a particao, as replicas voltam a concordar.
+
+Resumo: a divergencia comecou na versao v2; durante a particao, a escolha e entre C e A.
