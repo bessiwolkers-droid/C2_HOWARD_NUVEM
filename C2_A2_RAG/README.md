@@ -1,6 +1,8 @@
 # C2.A2 — RAG distribuído em microsserviços
 
-Trabalho de Sistemas Distribuídos e Computação em Nuvem — FAESA, 2026/2.
+**Disciplina:** Sistemas Distribuídos e Computação em Nuvem · FAESA · 2026/2
+**Unidade:** C2 · Coordenação e consistência
+**Tipo de entrega:** trabalho prático · RAG distribuído em microsserviços
 
 O projeto separa ingestão, recuperação e geração em três serviços HTTP. O índice vetorial é persistido em JSON; um worker consome do Redis a fila de ingestão; o serviço de geração consulta o recuperador e protege a chamada ao LLM com circuit breaker. Sem `LLM_API_KEY`, a resposta usa o modo simulado offline do kit.
 
