@@ -1,0 +1,66 @@
+services:
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  ingestao:
+    build: .
+    command: ["uvicorn", "servicos.ingestao.app:app", "--host", "0.0.0.0", "--port", "8001"]
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      INDICE_PATH: /app/dados/indice.json
+    volumes:
+      - ./dados:/app/dados
+    ports: ["8001:8001"]
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  worker:
+    build: .
+    command: ["python", "-m", "servicos.ingestao.worker"]
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      URL_INGESTAO: http://ingestao:8001
+    depends_on:
+      redis:
+        condition: service_healthy
+      ingestao:
+        condition: service_started
+    restart: unless-stopped
+
+  recuperacao:
+    build: .
+    command: ["uvicorn", "servicos.recuperacao.app:app", "--host", "0.0.0.0", "--port", "8002"]
+    environment:
+      URL_INGESTAO: http://ingestao:8001
+    ports: ["8002:8002"]
+    depends_on:
+      ingestao:
+        condition: service_started
+    restart: unless-stopped
+
+  geracao:
+    build: .
+    command: ["uvicorn", "servicos.geracao.app:app", "--host", "0.0.0.0", "--port", "8003"]
+    environment:
+      URL_RECUPERACAO: http://recuperacao:8002
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      LLM_API_URL: ${LLM_API_URL:-https://api.openai.com/v1/chat/completions}
+      LLM_MODELO: ${LLM_MODELO:-gpt-4o-mini}
+    ports: ["8003:8003"]
+    depends_on:
+      recuperacao:
+        condition: service_started
+    restart: unless-stopped
+
+volumes:
+  redis_data:
