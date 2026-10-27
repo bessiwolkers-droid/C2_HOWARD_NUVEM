@@ -35,6 +35,8 @@ def buscar(consulta: Consulta):
         registro = dict(item)
         registro["similaridade"] = similaridade(vetor_pergunta, vetor_documento.toarray()[0].tolist())
         resultados.append(registro)
+    # Documentos sem qualquer semelhança lexical não devem fundamentar respostas.
+    resultados = [item for item in resultados if item["similaridade"] > 0]
     resultados.sort(key=lambda item: item["similaridade"], reverse=True)
     return {"pergunta": consulta.pergunta, "resultados": resultados[:consulta.top_k]}
 
