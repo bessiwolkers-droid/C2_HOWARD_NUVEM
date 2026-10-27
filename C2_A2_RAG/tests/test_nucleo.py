@@ -9,6 +9,7 @@ from servicos.ingestao import app as ingestao
 from servicos.recuperacao import app as recuperacao
 from servicos.geracao import app as geracao
 from fastapi import HTTPException
+from servicos.comum import llm
 
 
 class TestBusca(unittest.TestCase):
@@ -90,3 +91,18 @@ class TestApiGeracao(unittest.TestCase):
             self.assertEqual(erro.exception.status_code, 503)
         finally:
             geracao.disjuntor = anterior
+
+
+class TestRetentativaLlm(unittest.TestCase):
+    def test_tenta_novamente_apos_timeout_transitorio(self):
+        sucesso = type("Resposta", (), {
+            "raise_for_status": lambda self: None,
+            "json": lambda self: {"choices": [{"message": {"content": "resposta de teste"}}]},
+        })()
+        with patch.object(llm, "API_KEY", "chave-de-teste"), \
+             patch.object(llm, "MAX_TENTATIVAS", 3), \
+             patch.object(llm.time, "sleep"), \
+             patch.object(llm.requests, "post", side_effect=[llm.requests.Timeout(), sucesso]) as chamada:
+            resultado = llm.gerar("pergunta", ["contexto"])
+        self.assertEqual(resultado, "resposta de teste")
+        self.assertEqual(chamada.call_count, 2)

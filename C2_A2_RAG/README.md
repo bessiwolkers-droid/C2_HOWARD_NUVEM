@@ -31,7 +31,7 @@ docker compose up --build -d
 docker compose ps
 ```
 
-A chave do LLM é opcional. Para execução offline, deixe `LLM_API_KEY` vazia. Os serviços ficam disponíveis em `http://localhost:8001` (ingestão), `http://localhost:8002` (recuperação) e `http://localhost:8003` (geração). Redis e os serviços também estão na rede interna do Compose. O JSON do índice é mantido em `dados/indice.json` e sobrevive à recriação dos contêineres enquanto a pasta local for preservada.
+A chave do LLM é opcional. Para execução offline, deixe `LLM_API_KEY` vazia. A chamada real usa timeout configurável por `LLM_TIMEOUT` (20 segundos por padrão), até `LLM_MAX_TENTATIVAS` tentativas (3 por padrão) para timeouts, falhas de conexão, HTTP 429 e erros HTTP 5xx; a espera entre tentativas aumenta progressivamente a partir de `LLM_ESPERA_RETENTATIVA` (0,5 segundo por padrão). Erros HTTP 4xx permanentes não são repetidos. O circuit breaker envolve a operação completa, inclusive as retentativas, e conta uma falha depois que elas se esgotam. Os serviços ficam disponíveis em `http://localhost:8001` (ingestão), `http://localhost:8002` (recuperação) e `http://localhost:8003` (geração). Redis e os serviços também estão na rede interna do Compose. O JSON do índice é mantido em `dados/indice.json` e sobrevive à recriação dos contêineres enquanto a pasta local for preservada.
 
 ## Fluxo de ponta a ponta
 
@@ -74,7 +74,7 @@ docker compose down                 # preserva os dados e o volume Redis
 docker compose down -v              # remove também o estado do Redis
 ```
 
-Os testes locais verificam a ordenação da busca, persistência do índice e rejeição de parâmetros inválidos. O roteiro de entrega também deve verificar a recuperação após reiniciar ingestão, a operação sem chave de LLM e o comportamento do disjuntor quando o LLM falha repetidamente. Para forçar falhas no LLM, configure um endpoint/chave de teste indisponível e observe `/saude` em geração após três falhas.
+Os seis testes automatizados cobrem ordenação da busca, índice vazio, persistência e recarga, abertura do disjuntor com resposta HTTP 503 e retentativa do cliente LLM após timeout transitório. A execução local também confirmou a recuperação do índice após reiniciar a ingestão e o fluxo com Redis e resposta simulada. O roteiro de entrega ainda deve verificar corte total de internet, indisponibilidade do serviço de recuperação e o Compose completo em ambiente com Docker. Para observar o disjuntor após três chamadas LLM esgotarem as retentativas, configure um endpoint de teste indisponível e consulte `/saude` em geração.
 
 ## Decisões de consistência e resiliência
 
