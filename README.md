@@ -15,3 +15,4 @@
 Na pasta [Aula_10_CAP](Aula_10_CAP/) estão `replicas_sim.py`, `saida_experimento.txt`, `Relatorio_CAP.md` e `PROMPTS.md`.
 
 O projeto completo do trabalho está em [C2_A2_RAG](C2_A2_RAG/). Consulte seu [README](C2_A2_RAG/README.md) para arquitetura, configuração, execução e testes.
+
