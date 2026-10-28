@@ -19,6 +19,11 @@ services:
     volumes:
       - ./dados:/app/dados
     ports: ["8001:8001"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/saude', timeout=2)"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
     depends_on:
       redis:
         condition: service_healthy
@@ -34,7 +39,7 @@ services:
       redis:
         condition: service_healthy
       ingestao:
-        condition: service_started
+        condition: service_healthy
     restart: unless-stopped
 
   recuperacao:
@@ -43,9 +48,14 @@ services:
     environment:
       URL_INGESTAO: http://ingestao:8001
     ports: ["8002:8002"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8002/saude', timeout=2)"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
     depends_on:
       ingestao:
-        condition: service_started
+        condition: service_healthy
     restart: unless-stopped
 
   geracao:
@@ -60,10 +70,22 @@ services:
       LLM_MAX_TENTATIVAS: ${LLM_MAX_TENTATIVAS:-3}
       LLM_ESPERA_RETENTATIVA: ${LLM_ESPERA_RETENTATIVA:-0.5}
     ports: ["8003:8003"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8003/saude', timeout=2)"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
     depends_on:
       recuperacao:
-        condition: service_started
+        condition: service_healthy
     restart: unless-stopped
+
+  testes:
+    build: .
+    command: ["python", "-m", "unittest", "discover", "-s", "tests", "-v"]
+    profiles: ["test"]
+    environment:
+      INDICE_PATH: /tmp/c2a2-indice-teste.json
 
 volumes:
   redis_data:

@@ -2,6 +2,7 @@
 import json
 import os
 import tempfile
+import threading
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
@@ -16,6 +17,7 @@ REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 FILA_INDEXACAO = "c2a2:ingestao:fila"
 vetorizador = Vetorizador()
 INDICE = []
+TRAVA_INDICE = threading.RLock()
 
 
 class Documento(BaseModel):
@@ -25,6 +27,8 @@ class Documento(BaseModel):
 
 class LoteDocumentos(BaseModel):
     documentos: list[Documento]
+    # Opcional: o worker envia este ID para evitar aplicação duplicada após reinício.
+    job_id: str | None = None
 
 
 def _vetorizar_indice():
@@ -56,7 +60,8 @@ def _carregar():
         if not isinstance(conteudo, list):
             raise RuntimeError("O arquivo do índice deve conter uma lista.")
         INDICE = [
-            {"texto": str(item["texto"]), "origem": str(item.get("origem", "desconhecida"))}
+            {**{"texto": str(item["texto"]), "origem": str(item.get("origem", "desconhecida"))},
+             **({"job_id": str(item["job_id"])} if item.get("job_id") else {})}
             for item in conteudo
         ]
         _vetorizar_indice()
@@ -105,15 +110,30 @@ def processar(lote: LoteDocumentos):
     """Endpoint interno chamado pelo worker para aplicar um lote."""
     if not lote.documentos:
         raise HTTPException(status_code=400, detail="Lote vazio.")
-    INDICE.extend(d.model_dump() for d in lote.documentos)
-    _vetorizar_indice()
-    _persistir()
-    return {"indexados": len(INDICE)}
+    with TRAVA_INDICE:
+        # Em caso de queda do worker após a gravação, repetir o mesmo job é seguro.
+        if lote.job_id and any(item.get("job_id") == lote.job_id for item in INDICE):
+            return {"indexados": len(INDICE), "reprocessado": True}
+        novos = [d.model_dump() for d in lote.documentos]
+        if lote.job_id:
+            for item in novos:
+                item["job_id"] = lote.job_id
+        INDICE.extend(novos)
+        try:
+            _vetorizar_indice()
+            _persistir()
+        except Exception:
+            # Não deixar o índice em memória parcialmente alterado após falha em disco.
+            del INDICE[-len(novos):]
+            _vetorizar_indice()
+            raise
+        return {"indexados": len(INDICE), "reprocessado": False}
 
 
 @app.get("/indice")
 def indice():
-    return {"total": len(INDICE), "itens": INDICE}
+    with TRAVA_INDICE:
+        return {"total": len(INDICE), "itens": [dict(item) for item in INDICE]}
 
 
 @app.get("/saude")

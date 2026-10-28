@@ -23,16 +23,30 @@ def perguntar(p: Pergunta):
             json={"pergunta": p.pergunta, "top_k": 3}, timeout=8,
         )
         r.raise_for_status()
-        contexto = [t["texto"] for t in r.json().get("resultados", [])]
+        trechos = r.json().get("resultados", [])
+        contexto = [t["texto"] for t in trechos] if isinstance(trechos, list) else []
+        fontes = list(dict.fromkeys(t.get("origem", "desconhecida") for t in trechos)) if contexto else []
     except (requests.RequestException, ValueError, KeyError) as exc:
         raise HTTPException(status_code=502, detail="Serviço de recuperação indisponível ou resposta inválida.") from exc
+    if not contexto:
+        return {
+            "pergunta": p.pergunta,
+            "resposta": "Não encontrei informações relevantes nos documentos para responder à pergunta.",
+            "contexto": [], "fontes": [], "modo": "sem_contexto",
+        }
     try:
         resposta = disjuntor.chamar(gerar, p.pergunta, contexto)
     except CircuitoAberto as exc:
-        raise HTTPException(status_code=503, detail="Serviço de geração temporariamente indisponível (circuit breaker aberto).") from exc
+        raise HTTPException(status_code=503, detail={
+            "mensagem": "LLM temporariamente indisponível (circuit breaker aberto).",
+            "contexto": contexto, "fontes": fontes,
+        }) from exc
     except Exception as exc:
-        raise HTTPException(status_code=502, detail="Falha ao consultar o serviço de geração.") from exc
-    return {"pergunta": p.pergunta, "resposta": resposta, "contexto": contexto}
+        raise HTTPException(status_code=502, detail={
+            "mensagem": "Falha ao consultar o LLM; trechos recuperados disponíveis para consulta.",
+            "contexto": contexto, "fontes": fontes,
+        }) from exc
+    return {"pergunta": p.pergunta, "resposta": resposta, "contexto": contexto, "fontes": fontes}
 
 
 @app.get("/saude")

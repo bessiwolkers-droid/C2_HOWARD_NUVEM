@@ -3,7 +3,7 @@
 - [x] **1. Persistir o índice** — `servicos/ingestao/app.py`: grava JSON atomicamente e o recarrega ao iniciar.
 - [x] **2. Busca por similaridade** — `servicos/recuperacao/app.py`: vetoriza a pergunta, calcula similaridade cosseno e retorna `top_k` ordenado.
 - [x] **3. Circuit breaker no LLM** — `servicos/geracao/app.py`: executa `gerar(...)` por `disjuntor.chamar(...)`, usa timeout e retentativas progressivas para falhas transitórias, e responde HTTP 503 com circuito aberto.
-- [x] **4. Mensageria** — Redis List + `servicos/ingestao/worker.py`: a rota `/indexar` enfileira; worker consome e processa o lote.
+- [x] **4. Mensageria** — Redis List com pendentes e reentrega + `servicos/ingestao/worker.py`: a rota `/indexar` enfileira; worker consome e processa o lote.
 - [x] **5. Fluxo completo** — `/perguntar` chama recuperação, usa o contexto e devolve resposta com documentos de apoio.
 - [x] **6. README com diagrama** — `README.md` documenta serviços, fluxo, operação e configuração.
 
