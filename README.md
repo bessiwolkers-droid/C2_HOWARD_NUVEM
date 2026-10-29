@@ -9,7 +9,6 @@
 
 | Aula | Tema | Entrega |
 | --- | --- | --- |
-| Aula 10 | Replicação, consistência e teorema CAP | [Aula_10_CAP/](Aula_10_CAP/) |
 | C2.A2 | RAG distribuído em microsserviços | [C2_A2_RAG/](C2_A2_RAG/) |
 
 Na pasta [Aula_10_CAP](Aula_10_CAP/) estão `replicas_sim.py`, `saida_experimento.txt`, `Relatorio_CAP.md` e `PROMPTS.md`.
