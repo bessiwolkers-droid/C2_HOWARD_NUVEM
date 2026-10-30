@@ -32,7 +32,8 @@ def buscar(consulta: Consulta):
     vetor_pergunta = matriz[-1].toarray()[0].tolist()
     resultados = []
     for item, vetor_documento in zip(itens, matriz[:-1]):
-        registro = dict(item)
+        # O vetor gravado pela ingestão não é usado aqui e só incharia a resposta.
+        registro = {chave: valor for chave, valor in item.items() if chave != "vetor"}
         registro["similaridade"] = similaridade(vetor_pergunta, vetor_documento.toarray()[0].tolist())
         resultados.append(registro)
     # Documentos sem qualquer semelhança lexical não devem fundamentar respostas.
