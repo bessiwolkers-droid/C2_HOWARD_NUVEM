@@ -27,6 +27,13 @@ class TestBusca(unittest.TestCase):
         self.assertEqual(resultado["resultados"][0]["origem"], "cap")
         self.assertGreater(resultado["resultados"][0]["similaridade"], 0)
 
+    def test_resultado_nao_expoe_vetor_da_ingestao(self):
+        dados = {"itens": [{"texto": "teorema CAP", "origem": "cap", "vetor": [0.1, 0.2]}]}
+        resposta = type("Resposta", (), {"json": lambda self: dados, "raise_for_status": lambda self: None})()
+        with patch.object(recuperacao.requests, "get", return_value=resposta):
+            resultado = recuperacao.buscar(recuperacao.Consulta(pergunta="teorema CAP"))
+        self.assertNotIn("vetor", resultado["resultados"][0])
+
     def test_indice_vazio_retorna_lista(self):
         resposta = type("Resposta", (), {"json": lambda self: {"itens": []}, "raise_for_status": lambda self: None})()
         with patch.object(recuperacao.requests, "get", return_value=resposta):
@@ -70,10 +77,6 @@ class TestCircuitBreaker(unittest.TestCase):
             disjuntor.chamar(lambda: "nao deveria executar")
 
 
-if __name__ == "__main__":
-    unittest.main()
-
-
 class TestApiGeracao(unittest.TestCase):
     def test_disjuntor_aberto_responde_503(self):
         anterior = geracao.disjuntor
@@ -106,3 +109,7 @@ class TestRetentativaLlm(unittest.TestCase):
             resultado = llm.gerar("pergunta", ["contexto"])
         self.assertEqual(resultado, "resposta de teste")
         self.assertEqual(chamada.call_count, 2)
+
+
+if __name__ == "__main__":
+    unittest.main()

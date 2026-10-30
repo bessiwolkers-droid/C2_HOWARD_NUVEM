@@ -1,6 +1,6 @@
 # Revisão do projeto C2.A2 — 27/10/2026
 
-A estrutura original do repositório e os arquivos de `Aula_10_CAP` foram preservados.
+A estrutura original do projeto C2.A2 foi preservada.
 
 ## Correções aplicadas
 
@@ -18,6 +18,17 @@ A estrutura original do repositório e os arquivos de `Aula_10_CAP` foram preser
 - **12 testes unitários passaram**, incluindo testes de reentrega simulada do worker, persistência idempotente, busca, contexto e resiliência.
 - Para os testes Python locais, a interface da biblioteca Redis foi substituída por um stub isolado, pois o pacote `redis` não está instalado no ambiente de validação. Nos contêineres Docker a dependência é instalada pelo `requirements.txt`.
 - **Não foi possível iniciar Docker Compose, Redis real ou chamar um LLM real** neste ambiente. Esse teste precisa ser feito na máquina de entrega.
+
+## Revisão de 29/10/2026
+
+- **Recuperação**: `/buscar` deixou de devolver o campo `vetor` de cada documento (vinha do índice da ingestão, não era usado e aumentava a resposta). Teste adicionado.
+- **Testes**: o `if __name__ == "__main__"` de `tests/test_nucleo.py` foi movido para o fim do arquivo; antes, ao rodar o arquivo diretamente, as classes declaradas depois dele não executavam.
+- **13 testes unitários passaram** (`python -m unittest discover -s tests`).
+- **Fluxo integrado executado sem Docker**: os três serviços e o worker rodando com `uvicorn`, usando um servidor Redis simulado (`fakeredis`) na porta TCP. `scripts/testar_fluxo.py` terminou com `TESTE INTEGRADO: OK`.
+- **Falhas induzidas** no mesmo ambiente:
+  - LLM apontado para uma porta fechada: três respostas HTTP 502 com contexto e fontes, quarta resposta HTTP 503 e `/saude` da geração mostrando `"disjuntor": "aberto"`.
+  - Serviço de recuperação derrubado: `/perguntar` responde HTTP 502 e a ingestão continua com o mesmo número de documentos.
+- Continua pendente a execução via Docker Compose com Redis real.
 
 ## Comandos recomendados para validação final
 

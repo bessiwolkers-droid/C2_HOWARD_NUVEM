@@ -11,8 +11,8 @@
 
 - [x] A geração tem modo simulado quando a chave está ausente; o segredo é lido de variável de ambiente.
 - [ ] Confirmar a operação após desligar a internet e subir novamente os serviços.
-- [ ] Derrubar o serviço de recuperação e confirmar que o cliente recebe erro sem corromper estado.
-- [ ] Induzir falhas do LLM e confirmar três falhas, circuito aberto e retorno HTTP 503.
+- [x] Derrubar o serviço de recuperação e confirmar que o cliente recebe erro sem corromper estado (HTTP 502; índice intacto — ver `ALTERACOES_C2_A2.md`).
+- [x] Induzir falhas do LLM e confirmar três falhas, circuito aberto e retorno HTTP 503 (validado sem Docker — ver `ALTERACOES_C2_A2.md`).
 - [ ] Executar `docker compose up --build` em um ambiente com Docker habilitado e concluir o fluxo documentado.
 
-As caixas ainda vazias são validações manuais de ambiente. Elas não são marcadas como realizadas sem execução observável.
+As caixas ainda vazias são validações que dependem de Docker ou de rede controlada. Elas não são marcadas como realizadas sem execução observável.
